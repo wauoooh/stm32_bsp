@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.py": "python",
+        "serial_dma.h": "c"
+    }
+}
