@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "*.py": "python",
-        "serial_dma.h": "c"
+        "serial_dma.h": "c",
+        "seq_queue.h": "c"
     }
 }

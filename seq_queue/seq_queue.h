@@ -2,7 +2,7 @@
 #define __SEQ_QUEUE_H__
 
 #include <stdlib.h>
-#include "stm32f4xx_hal.h"
+// #include "stm32f4xx_hal.h"
 
 typedef int ElemType;
 
