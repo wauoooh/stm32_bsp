@@ -1,10 +1,9 @@
 #include "serial_dma.h"
 
-
 /*
     使用步骤：1、配置好串口模块，并在头文件中改写串口相关定义
             2、调用serialStart()初始化并开始串口接收
-            3、通过orderEmpty()判断命令列表是否为空，不为空通过orderGetXXX()获取命令信息，并通过orderDelete()删除命令
+            3、通过orderEmpty()判断命令列表是否为空，不为空则通过orderGetXXX()获取命令信息，并通过orderDelete()删除命令
 */
 
 /*
@@ -17,15 +16,16 @@
 OrderList *orderList1;
 
 void serialStart(void){
-    // 开启空闲中断
-    __HAL_UART_ENABLE_IT(&serial_uart, UART_IT_IDLE);
     // 初始化结构体
     orderList1 = orderInit();
+    // 开启空闲中断
+    __HAL_UART_ENABLE_IT(&serial_uart, UART_IT_IDLE);
     // 开启串口DMA接收
     HAL_UART_Receive_DMA(&serial_uart, orderList1->rxBuff, RXBUFF_SIZE);
 }
 
 void Serial_IRQHandler(void){
+	HAL_UART_IRQHandler(&serial_uart);
     // 如果空闲中断
     if(RESET != __HAL_UART_GET_FLAG(&serial_uart,UART_FLAG_IDLE)){
         __HAL_UART_CLEAR_IDLEFLAG(&serial_uart); //清除标志位
@@ -37,10 +37,13 @@ void Serial_IRQHandler(void){
         // 防止缓存溢出
         if(RXBUFF_SIZE - orderList1->rxRear < 30 ){
             uint32_t len = orderList1->rxRear - orderList1->rxFront;
-            memcpy(orderList1->rxBuff, orderList1->rxBuff + orderList1->rxFront, len);
-            orderList1->rxFront = 0;
-            orderList1->rxRear = len;
+			if(len != 0)
+				memcpy(orderList1->rxBuff, orderList1->rxBuff + orderList1->rxFront, len);
+			orderList1->rxFront = 0;
+			orderList1->rxRear = len;
+			HAL_UART_DMAStop(&serial_uart);
             HAL_UART_Receive_DMA(&serial_uart, orderList1->rxBuff+len, RXBUFF_SIZE-len);
+
         }
     }
 }
@@ -187,3 +190,4 @@ void orderAnaly(OrderList *ol){
                 orderAnaly(ol);
     }
 }
+

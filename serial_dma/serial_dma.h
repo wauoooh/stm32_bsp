@@ -38,12 +38,12 @@ typedef struct OrderListItem{
 typedef struct{
     uint8_t *txBuff;
     uint8_t *rxBuff;
-    uint32_t txBuffLength;
-    uint32_t rxFront;
-    uint32_t rxRear;
+    __IO uint32_t txBuffLength;
+    __IO uint32_t rxFront;
+    __IO uint32_t rxRear;
 
-    uint64_t timeNow;
-    uint64_t timeLast;
+    __IO uint64_t timeNow;
+    __IO uint64_t timeLast;
 
     OrderListItem *head;
     OrderListItem *tail;
