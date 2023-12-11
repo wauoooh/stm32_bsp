@@ -26,7 +26,6 @@ void serialStart(void){
 }
 
 void Serial_IRQHandler(void){
-    HAL_UART_IRQHandler(&serial_uart);
     // 如果空闲中断
     if(RESET != __HAL_UART_GET_FLAG(&serial_uart,UART_FLAG_IDLE)){
         __HAL_UART_CLEAR_IDLEFLAG(&serial_uart); //清除标志位
@@ -34,7 +33,7 @@ void Serial_IRQHandler(void){
         // 获取接收长度
         orderList1->rxRear = RXBUFF_SIZE - __HAL_DMA_GET_COUNTER(&serial_dma_rx);
         // 解析命令 
-        orderAnaly(orderList1, getTime());  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 超时
+        orderAnaly(orderList1);
         // 防止缓存溢出
         if(RXBUFF_SIZE - orderList1->rxRear < 30 ){
             uint32_t len = orderList1->rxRear - orderList1->rxFront;
@@ -138,10 +137,9 @@ float orderGetDataf32(OrderList *ol){
 
 
 // 从接收缓存中解析数据
-void orderAnaly(OrderList *ol, uint64_t timeNow){
+void orderAnaly(OrderList *ol){
     // 检测长度
     if(ol->rxRear-ol->rxFront < 9){
-        ol->timeLast = timeNow;
         return;
     }
     
@@ -159,6 +157,7 @@ void orderAnaly(OrderList *ol, uint64_t timeNow){
                 data.c[2] = ol->rxBuff[ol->rxFront+6];
                 data.c[3] = ol->rxBuff[ol->rxFront+7];
                 orderInsert(ol,ol->rxBuff[ol->rxFront+2],ol->rxBuff[ol->rxFront+3],&data);
+                ol->rxFront += 9;
             }
             else{
                 ol->rxFront++;
@@ -173,19 +172,18 @@ void orderAnaly(OrderList *ol, uint64_t timeNow){
                 data.c[2] = ol->rxBuff[ol->rxFront+6];
                 data.c[3] = ol->rxBuff[ol->rxFront+7];
                 orderInsert(ol,ol->rxBuff[ol->rxFront+2],ol->rxBuff[ol->rxFront+3],&data);
+                ol->rxFront += 9;
             }
+            // 校验不对，丢弃开头1字节，重新分析
             else{
                 ol->rxFront++;
-                orderAnaly(ol, timeNow);
+                orderAnaly(ol);
             }
         #endif
     }
-
-    // 超时，100ms（需要自己给timeNow赋值）
-    if(timeNow-ol->timeLast >= 100){
-        while(ol->rxBuff[ol->rxFront]!=0xFF && ol->rxRear-ol->rxFront >= 9)
-            ol->rxFront++;
-        orderAnaly(ol, timeNow);
+    // 帧头不对，丢弃开头1字节，重新分析
+    else{
+        ol->rxFront++;
+                orderAnaly(ol);
     }
 }
-
